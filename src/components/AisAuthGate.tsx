@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { googleSignIn, logout, getAccessToken } from "../utils/firebaseAuth";
 import { User } from "firebase/auth";
 import { Registration } from "../types";
+import firebaseConfig from "../../firebase-applet-config.json";
 import { 
   LogIn, UserCheck, ShieldAlert, GraduationCap, Users, 
   Settings, Building2, Phone, BookOpen, AlertCircle, ChevronRight, LogOut, RefreshCw
@@ -411,7 +412,7 @@ export default function AisAuthGate({
             <div className="text-[11px] text-slate-400 space-y-1 pl-1">
               <div className="flex items-start gap-1.5">
                 <span className="text-amber-500 font-black">1.</span>
-                <span>Truy cập trang cấu hình auth: <a href="https://console.firebase.google.com/project/splendid-topic-xmvz5/authentication/settings" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline underline-offset-2 font-bold inline-flex items-center gap-0.5 font-sans">Firebase Console Settings →</a></span>
+                <span>Truy cập trang cấu hình auth: <a href={`https://console.firebase.google.com/project/${import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId || "splendid-topic-xmvz5"}/authentication/settings`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline underline-offset-2 font-bold inline-flex items-center gap-0.5 font-sans">Firebase Console Settings →</a></span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="text-amber-500 font-black">2.</span>

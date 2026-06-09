@@ -1,0 +1,10 @@
+{
+  "name": "Remix: MathWonder",
+  "description": "MathWonder - Hệ thống kiểm tra tài năng Toán học, tự động hóa phân tách đề bằng AI, giám sát an toàn và phân tích kết quả trực quan sinh động.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

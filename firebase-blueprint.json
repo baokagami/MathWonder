@@ -1,0 +1,143 @@
+{
+  "entities": {
+    "Registration": {
+      "title": "Registration",
+      "description": "User account registration request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "school": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "password": { "type": "string" },
+        "securityQuestion": { "type": "string" },
+        "securityAnswer": { "type": "string" },
+        "specialty": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "phone", "school", "role", "status", "createdAt"]
+    },
+    "Classroom": {
+      "title": "Classroom",
+      "description": "A student classroom",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "subject": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "code": { "type": "string" },
+        "createdDate": { "type": "string" },
+        "students": { "type": "array" }
+      },
+      "required": ["id", "name", "subject", "teacherName", "code", "createdDate", "students"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "A scheduled lesson and attendance sheet",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classroomId": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string" },
+        "topic": { "type": "string" },
+        "attendance": { "type": "array" },
+        "createdDate": { "type": "string" }
+      },
+      "required": ["id", "classroomId", "date", "type", "topic", "attendance", "createdDate"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "An online assessment exam",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "classroomId": { "type": "string" },
+        "duration": { "type": "number" },
+        "requireCamera": { "type": "boolean" },
+        "status": { "type": "string" },
+        "questions": { "type": "array" },
+        "createdDate": { "type": "string" }
+      },
+      "required": ["id", "title", "classroomId", "duration", "status", "questions", "createdDate"]
+    },
+    "ExamSession": {
+      "title": "ExamSession",
+      "description": "Student score submissions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "examId": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "studentName": { "type": "string" },
+        "score": { "type": "number" },
+        "timeSpent": { "type": "number" },
+        "status": { "type": "string" },
+        "cheatingAlertsCount": { "type": "number" },
+        "isFlagged": { "type": "boolean" },
+        "submittedAt": { "type": "string" }
+      },
+      "required": ["id", "examId", "studentEmail", "studentName", "score", "timeSpent", "submittedAt"]
+    },
+    "StudentEvaluation": {
+      "title": "StudentEvaluation",
+      "description": "A report evaluation for student academic performance",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "classroomId": { "type": "string" },
+        "studentEmail": { "type": "string" },
+        "studentName": { "type": "string" },
+        "metricScores": { "type": "object" },
+        "aiNotes": { "type": "string" },
+        "grade": { "type": "string" },
+        "createdDate": { "type": "string" }
+      },
+      "required": ["id", "classroomId", "studentEmail", "studentName", "metricScores", "aiNotes", "grade", "createdDate"]
+    },
+    "AdminSetting": {
+      "title": "AdminSetting",
+      "description": "Persistent shared spreadsheets sync codes",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "registrations/{id}": {
+      "schema": "Registration",
+      "description": "Shared list of registrations and user credentials"
+    },
+    "classrooms/{id}": {
+      "schema": "Classroom",
+      "description": "Synchronized student-teacher classrooms"
+    },
+    "lessons/{id}": {
+      "schema": "Lesson",
+      "description": "Lesson schedules and student attendance logs"
+    },
+    "exams/{id}": {
+      "schema": "Exam",
+      "description": "Exams lists"
+    },
+    "sessions/{id}": {
+      "schema": "ExamSession",
+      "description": "Online exams mock logs submissions"
+    },
+    "evaluations/{id}": {
+      "schema": "StudentEvaluation",
+      "description": "Academic teacher-run reports"
+    },
+    "admin_settings/{settingId}": {
+      "schema": "AdminSetting",
+      "description": "Administrator configurations for connected Sheets"
+    }
+  }
+}

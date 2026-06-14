@@ -22,6 +22,8 @@ export interface Exam {
   totalPoints: number;
   examType?: 'daily' | 'periodic' | 'custom';
   requireCamera?: boolean;
+  isLobbyExam?: boolean;
+  targetClassroomName?: string;
 }
 
 export interface Classroom {

@@ -1,10 +1,6 @@
 {
-  "name": "Remix: MathWonder",
-  "description": "MathWonder - Hệ thống kiểm tra tài năng Toán học, tự động hóa phân tách đề bằng AI, giám sát an toàn và phân tích kết quả trực quan sinh động.",
-  "requestFramePermissions": [
-    "camera"
-  ],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "name": "MathWonder",
+  "description": "MathWonder - Hệ thống kiểm tra tài năng Toán học, tự động hóa phân tách đề thi từ Word (.docx) nhận diện mẫu câu hỏi, công thức toán và hình vẽ đi kèm.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -13,7 +13,9 @@ interface AICreatorProps {
     duration: number,
     questions: Question[],
     examType?: 'daily' | 'periodic' | 'custom',
-    requireCamera?: boolean
+    requireCamera?: boolean,
+    isLobbyExam?: boolean,
+    targetClassroomName?: string
   ) => void;
   onCancel: () => void;
 }
@@ -23,6 +25,8 @@ export default function AICreator({ classroomId, onExamCreated, onCancel }: AICr
   const [description, setDescription] = useState("Bài kiểm tra được tạo tự động và giám sát trực tuyến.");
   const [duration, setDuration] = useState(45);
   const [requireCamera, setRequireCamera] = useState(true);
+  const [isLobbyExam, setIsLobbyExam] = useState(false);
+  const [targetClassroomName, setTargetClassroomName] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [parsingStatus, setParsingStatus] = useState("");
   const [rawText, setRawText] = useState("");
@@ -321,7 +325,8 @@ export default function AICreator({ classroomId, onExamCreated, onCancel }: AICr
       setErrorMsg("Đề thi chưa có câu hỏi nào. Hãy tải lên tệp đề hoặc tự viết câu hỏi.");
       return;
     }
-    onExamCreated(title, description, duration, questions, examType, requireCamera);
+    // Also mark as active draft
+    onExamCreated(title, description, duration, questions, examType, requireCamera, isLobbyExam, targetClassroomName);
   };
 
   return (
@@ -540,6 +545,41 @@ export default function AICreator({ classroomId, onExamCreated, onCancel }: AICr
                   : "Không yêu cầu camera. Học sinh có thể làm bài trên mọi thiết bị mà không cần ghi hình."
                 }
               </p>
+            </div>
+
+            {/* Cấu hình công khai / phòng chờ */}
+            <div className="bg-indigo-50/20 p-4 rounded-xl border border-indigo-100 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="chk-lobby-exam"
+                  checked={isLobbyExam}
+                  onChange={(e) => setIsLobbyExam(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="chk-lobby-exam" className="text-xs font-bold text-slate-700 cursor-pointer uppercase tracking-wider select-none">
+                  📢 Đăng đề thi thử này ra ngoài PHÒNG CHỜ
+                </label>
+              </div>
+
+              {isLobbyExam && (
+                <div className="space-y-2 animate-fadeIn pl-6">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    Lớp học phân bổ khuyến nghị cho học sinh:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: 12A1 Chuyên Lý, 11B3 Toán Giải Tích..."
+                    value={targetClassroomName}
+                    onChange={(e) => setTargetClassroomName(e.target.value)}
+                    className="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold"
+                    id="input-target-classroom-name"
+                  />
+                  <p className="text-[9px] text-slate-450 leading-relaxed">
+                    Học sinh chưa có tài khoản ở ngoài phòng chờ có thể xem/làm bài thử này để tham khảo và định hướng chọn lớp đăng ký học.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

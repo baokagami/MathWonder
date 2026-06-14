@@ -508,7 +508,7 @@ export default function App() {
     const newReg: Registration = {
       ...data,
       id: newRegId,
-      status: "pending",
+      status: "approved",
       createdAt: new Date().toISOString()
     };
     
@@ -637,7 +637,9 @@ export default function App() {
     duration: number,
     questions: Question[],
     examType?: 'daily' | 'periodic' | 'custom',
-    requireCamera?: boolean
+    requireCamera?: boolean,
+    isLobbyExam?: boolean,
+    targetClassroomName?: string
   ) => {
     if (!selectedClassroomId) return;
     const newExam: Exam = {
@@ -651,10 +653,12 @@ export default function App() {
       status: "draft",
       createdDate: new Date().toISOString(),
       examType: examType || "custom",
-      requireCamera: requireCamera !== false // Default to true if undefined
+      requireCamera: requireCamera !== false, // Default to true if undefined
+      isLobbyExam: !!isLobbyExam,
+      targetClassroomName: targetClassroomName || ""
     };
     setDoc(doc(db, "exams", newExam.id), cleanUndefined(newExam)).catch(console.error);
-    setCurrentView("teacher_dashboard");
+    setCurrentView(currentUserSession?.role === 'admin' ? "admin_panel" : "teacher_dashboard");
   };
 
   const handleDeleteExam = (examId: string) => {
@@ -738,6 +742,8 @@ export default function App() {
     return (
       <AisAuthGate
         registrations={registrations}
+        exams={exams}
+        classrooms={classrooms}
         onRegister={handleRegister}
         onUpdatePassword={handleUpdatePassword}
         onLoginSuccess={(session) => {

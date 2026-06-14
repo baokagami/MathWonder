@@ -1,15 +1,19 @@
 import React, { useState } from "react";
 import { googleSignIn, logout, getAccessToken } from "../utils/firebaseAuth";
 import { User } from "firebase/auth";
-import { Registration } from "../types";
-import firebaseConfig from "../../firebase-applet-config.json";
+import { Registration, Exam, Classroom } from "../types";
 import { 
   LogIn, UserCheck, ShieldAlert, GraduationCap, Users, 
-  Settings, Building2, Phone, BookOpen, AlertCircle, ChevronRight, LogOut, RefreshCw
+  Settings, Building2, Phone, BookOpen, AlertCircle, ChevronRight, LogOut, RefreshCw,
+  FileText, Sparkles, AlertTriangle, BookMarked, HelpCircle, ArrowRight
 } from "lucide-react";
+import { MathRenderer } from "./MathRenderer";
+import { TikzRenderer } from "./TikzRenderer";
 
 interface AisAuthGateProps {
   registrations: Registration[];
+  exams: Exam[];
+  classrooms?: Classroom[];
   onRegister: (data: Omit<Registration, 'id' | 'createdAt' | 'status'>) => Promise<void> | void;
   onLoginSuccess: (user: { email: string; name: string; role: 'student' | 'teacher' | 'admin' }) => void;
   onBypass: (role: 'student' | 'teacher' | 'admin', email?: string, name?: string) => void;
@@ -18,6 +22,8 @@ interface AisAuthGateProps {
 
 export default function AisAuthGate({
   registrations,
+  exams,
+  classrooms = [],
   onRegister,
   onLoginSuccess,
   onBypass,
@@ -27,6 +33,13 @@ export default function AisAuthGate({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+
+  // Stub compilation variables for hidden preview lobby
+  const [selectedPreviewExam, setSelectedPreviewExam] = useState<any>(null);
+  const [previewAnswers, setPreviewAnswers] = useState<Record<string, string>>({});
+  const [showPreviewAnswers, setShowPreviewAnswers] = useState(false);
+  const lobbyExams: any[] = [];
+  const getRecommendedClassroom = (exam: any) => "";
 
   // Google Form states
   const [name, setName] = useState("");
@@ -348,153 +361,448 @@ export default function AisAuthGate({
     ? registrations.find(r => r.email.toLowerCase() === (googleUser.email || "").toLowerCase())
     : directUser
       ? (registrations.find(r => r.email.toLowerCase() === directUser.email.toLowerCase()) || {
-          id: `pending-${directUser.email}`,
+          id: `approved-${directUser.email}`,
           name: directUser.name,
           email: directUser.email,
           phone: "Đang tải...",
           school: "Đang tải...",
           role: directUser.role,
-          status: "pending",
+          status: "approved",
           createdAt: new Date().toISOString()
         } as Registration)
       : null;
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 sm:p-6" id="auth-gate-wrapper">
-      <div className="max-w-md w-full bg-slate-850/95 border border-slate-755 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 sm:p-6" id="auth-gate-wrapper">
+      <div className="max-w-md w-full bg-slate-850/95 border border-slate-755 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden flex flex-col justify-between" id="auth-gate-card">
         
-        {/* Glow Effects */}
-        <div className="absolute top-0 left-1/4 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        {/* LEFT COLUMN: INTERACTIVE MOCK EXAM ROOM / LOBBY - HIDDEN */}
+        <div className="hidden" id="lobby-tests-container">
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-550/10 rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+            {!selectedPreviewExam ? (
+              <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2.5 py-1 bg-indigo-500/15 text-indigo-400 font-extrabold text-[10px] uppercase tracking-widest rounded-full border border-indigo-400/25">
+                      🏫 PHÒNG CHỜ HỌC VIÊN
+                    </span>
+                    <span className="animate-pulse flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span className="text-emerald-400 font-bold text-[9px] uppercase tracking-wider font-mono">LIVE LOBBY</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400 shrink-0 animate-pulse" />
+                    Đề Thi Thử & Định Hướng Phân Lớp
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-2">
+                    Học sinh chuẩn bị đăng ký hoặc khách vãng lai có thể xem trước nội dung đề thi, đối chiếu thực lực và nhận gợi ý xếp lớp học phù hợp nhất từ Thầy Trần Xuân Hiệp và các thầy cô.
+                  </p>
+                </div>
 
-        <div className="text-center relative z-10">
-          <div className="flex justify-center items-center gap-2 select-none mb-4">
-            <span className="text-3xl font-black text-blue-500 tracking-tighter leading-none">Δ</span>
-            <span className="text-3xl font-black text-amber-500 tracking-tighter -ml-3 leading-none">W</span>
-            <span className="text-slate-300 ml-1 text-xs uppercase tracking-widest font-mono border-l border-slate-700 pl-3">Portal</span>
+                <div className="space-y-3.5 my-4 flex-1 overflow-y-auto max-h-[480px] pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+                  {lobbyExams.length === 0 ? (
+                    <div className="p-8 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-950/40">
+                      <BookOpen className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                      <p className="text-xs text-slate-400 font-bold">Chưa có đề thi thử nào công khai</p>
+                      <p className="text-[10px] text-slate-500 mt-1">Admin và Giáo viên có thể đẩy đề thi thử lên đây trực tiếp từ công cụ tạo đề.</p>
+                    </div>
+                  ) : (
+                    lobbyExams.map((exam) => (
+                      <div 
+                        key={`lobby-exam-${exam.id}`}
+                        className="p-4 bg-slate-950/60 hover:bg-slate-950 border border-slate-800 hover:border-indigo-500/40 rounded-2xl transition-all duration-200 group flex flex-col justify-between gap-4"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="px-2 py-0.5 bg-indigo-950/80 text-indigo-300 border border-indigo-500/30 text-[9px] font-bold tracking-wider rounded uppercase">
+                              {exam.examType === 'periodic' ? "Đánh Giá Năng Lực" : "Khảo Sát Đầu Vào"}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                              ⏱️ {exam.duration} phút
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                              📝 {exam.questions.length} câu hỏi
+                            </span>
+                          </div>
+                          
+                          <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-indigo-400 transition-colors leading-snug">
+                            {exam.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
+                            {exam.description}
+                          </p>
+                        </div>
+
+                        <div className="pt-2.5 border-t border-slate-850 flex flex-wrap items-center justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block">Lớp học đề xuất:</span>
+                            <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
+                              👉 {getRecommendedClassroom(exam)}
+                            </span>
+                          </div>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPreviewExam(exam);
+                              setPreviewAnswers({});
+                              setShowPreviewAnswers(false);
+                            }}
+                            className="text-[10px] font-bold px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center gap-1 transition shadow-sm cursor-pointer"
+                          >
+                            Xem đề & Giải thử <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-800 text-[10px] text-slate-450 flex items-center gap-1.5">
+                  <span className="text-amber-500 animate-pulse text-xs">💡</span>
+                  <span>Bạn có thể giải thử ngay mà không bắt buộc có tài khoản. Hãy bấm nút Xem đề & Giải thử để bắt đầu!</span>
+                </div>
+              </div>
+            ) : (
+              // EXAM PREVIEW AND PRACTICE SOLVING
+              <div className="space-y-4 flex flex-col h-full justify-between">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPreviewExam(null)}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-white transition uppercase tracking-wider cursor-pointer"
+                  >
+                    ← Quay Lại Phòng Chờ
+                  </button>
+                  <span className="px-2.5 py-0.5 bg-indigo-500/10 border border-indigo-400/20 text-indigo-400 rounded-full text-[9px] font-bold uppercase font-mono">
+                    Chế độ Xem Thử & Khảo Sát
+                  </span>
+                </div>
+
+                <div className="space-y-1 bg-slate-950/40 p-3 rounded-xl border border-slate-850">
+                  <h3 className="text-xs sm:text-sm font-bold text-white leading-snug">
+                    {selectedPreviewExam.title}
+                  </h3>
+                  <p className="text-[10px] text-amber-400 font-semibold leading-relaxed flex items-center gap-1 pt-0.5">
+                    🎯 Định hướng xếp lớp: {getRecommendedClassroom(selectedPreviewExam)}
+                  </p>
+                </div>
+
+                {/* Questions viewport inside lobby */}
+                <div className="flex-1 overflow-y-auto max-h-[460px] space-y-4 pr-1 scrollbar-thin scrollbar-thumb-slate-800">
+                  {selectedPreviewExam.questions.map((q, qIndex) => {
+                    const isChosen = previewAnswers[q.id] !== undefined;
+
+                    return (
+                      <div 
+                        key={`preview-q-${q.id}`} 
+                        className="p-4 bg-slate-950/40 border border-slate-800 rounded-2xl space-y-3 text-[12px]"
+                      >
+                        <div className="flex justify-between items-start gap-2 border-b border-slate-800 pb-2 pb-1.5 text-[10px]">
+                          <span className="font-extrabold text-indigo-400 uppercase tracking-widest">
+                            Câu {qIndex + 1}:
+                          </span>
+                          <span className="text-slate-500 font-bold">
+                            ({q.points || 1} Điểm)
+                          </span>
+                        </div>
+
+                        {/* Question title with Math parsing */}
+                        <div className="text-slate-200 font-medium leading-relaxed leading-relaxed">
+                          <MathRenderer latex={q.text} />
+                        </div>
+
+                        {/* TikZ image representation support */}
+                        {q.tikz && (
+                          <div className="my-2.5 overflow-x-auto bg-black/40 p-2 rounded-xl border border-slate-850 flex justify-center">
+                            <TikzRenderer code={q.tikz} />
+                          </div>
+                        )}
+
+                        {/* Multiple Choice Answers rendering */}
+                        {q.type === 'multiple_choice' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                            {q.options.map((opt) => {
+                              const letter = opt.trim().substring(0, 1).toUpperCase();
+                              const isSelected = previewAnswers[q.id] === letter;
+                              const isThisCorrect = showPreviewAnswers && letter === q.correctAnswer;
+                              const isThisWrongSelected = showPreviewAnswers && isSelected && letter !== q.correctAnswer;
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (showPreviewAnswers) return;
+                                    setPreviewAnswers(prev => ({ ...prev, [q.id]: letter }));
+                                  }}
+                                  disabled={showPreviewAnswers}
+                                  className={`p-2.5 rounded-xl border text-left transition text-xs flex items-center justify-between cursor-pointer group ${
+                                    isThisCorrect
+                                      ? "bg-emerald-950/30 border-emerald-500/35 text-emerald-300 font-bold"
+                                      : isThisWrongSelected
+                                        ? "bg-red-950/30 border-red-500/35 text-red-350"
+                                        : isSelected
+                                          ? "bg-indigo-950/80 border-indigo-500 text-indigo-300 font-bold shadow-md shadow-indigo-950/50"
+                                          : "bg-slate-900/30 border-slate-850 text-slate-350 hover:bg-slate-900 hover:text-slate-250"
+                                  }`}
+                                  key={`opt-${q.id}-${letter}`}
+                                >
+                                  <div className="font-semibold flex-1 leading-normal">
+                                    <MathRenderer latex={opt} />
+                                  </div>
+                                  
+                                  {showPreviewAnswers && letter === q.correctAnswer && (
+                                    <span className="text-[8px] bg-emerald-500/20 text-emerald-400 font-bold px-1 py-0.5 rounded ml-1 uppercase">Đúng</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* True False representation */}
+                        {q.type === 'true_false' && (
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            {["Đúng", "Sai"].map((val) => {
+                              const isSelected = previewAnswers[q.id] === val;
+                              const isThisCorrect = showPreviewAnswers && val === q.correctAnswer;
+                              const isThisWrongSelected = showPreviewAnswers && isSelected && val !== q.correctAnswer;
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (showPreviewAnswers) return;
+                                    setPreviewAnswers(prev => ({ ...prev, [q.id]: val }));
+                                  }}
+                                  disabled={showPreviewAnswers}
+                                  className={`p-2 rounded-xl border text-center transition cursor-pointer text-xs flex items-center justify-center gap-1.5 ${
+                                    isThisCorrect
+                                      ? "bg-emerald-950/30 border-emerald-500/35 text-emerald-350 font-bold"
+                                      : isThisWrongSelected
+                                        ? "bg-red-950/30 border-red-500/35 text-red-300"
+                                        : isSelected
+                                          ? "bg-indigo-950/80 border-indigo-500 text-indigo-300 font-bold"
+                                          : "bg-slate-900/30 border-slate-850 text-slate-400 hover:bg-slate-900"
+                                  }`}
+                                  key={`tf-${q.id}-${val}`}
+                                >
+                                  <span>{val}</span>
+                                  {showPreviewAnswers && val === q.correctAnswer && (
+                                    <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded font-black uppercase">Đúng</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Short Answer */}
+                        {q.type === 'short_answer' && (
+                          <div className="pt-1 space-y-1.5">
+                            <input
+                              type="text"
+                              disabled={showPreviewAnswers}
+                              placeholder={showPreviewAnswers ? "Đã khóa câu trả lời" : "Gõ đáp án hoặc đáp số..."}
+                              value={previewAnswers[q.id] || ""}
+                              onChange={(e) => setPreviewAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                              className="w-full text-xs font-mono bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
+                            {showPreviewAnswers && (
+                              <div className="p-2 bg-slate-950 rounded-lg text-[10.5px] border border-slate-850 flex items-center justify-between">
+                                <span className="text-slate-400">Đáp án chuẩn:</span>{" "}
+                                <strong className="text-emerald-400 font-mono bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/20">{q.correctAnswer}</strong>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Explanations shown upon finishing */}
+                        {showPreviewAnswers && q.explanation && (
+                          <div className="p-3 bg-indigo-950/20 border border-indigo-500/10 rounded-xl space-y-1 animate-fadeIn mt-1">
+                            <p className="text-[9.5px] text-indigo-400 font-bold uppercase tracking-wider">
+                              💡 Lời giải tham khảo:
+                            </p>
+                            <p className="text-slate-300 text-[11px] leading-relaxed">
+                              <MathRenderer latex={q.explanation} />
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-3.5 border-t border-slate-800 flex flex-wrap gap-2.5 items-center justify-between">
+                  <div className="text-[10px] text-slate-400 font-semibold font-mono">
+                    Tiến độ làm bài: {Object.keys(previewAnswers).length}/{selectedPreviewExam.questions.length} câu
+                  </div>
+
+                  <div className="flex gap-2">
+                    {!showPreviewAnswers ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowPreviewAnswers(true)}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-[10px] uppercase tracking-wider transition shadow-md cursor-pointer"
+                      >
+                        Nộp & Đối chiếu Đáp Án / Lời Giải
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPreviewAnswers({});
+                          setShowPreviewAnswers(false);
+                        }}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold rounded-xl text-[10px] uppercase tracking-wider transition cursor-pointer"
+                      >
+                        Giải lại đề này
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )}
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Hệ thống Đăng Ký Trực Tuyến</h2>
-          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-            Học tập chất lượng cao, giám sát thông minh, đồng bộ dữ liệu tới Google Sheets hệ sinh thái MathWonder.
-          </p>
         </div>
 
-        {error && (
-          <div className="p-3.5 bg-red-950/40 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-center gap-2.5 relative z-10">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {unauthorizedDomain && (
-          <div className="p-4 bg-slate-900/90 border border-amber-500/35 rounded-2xl text-xs space-y-3 relative z-10 animate-fadeIn text-left">
-            <div className="flex items-center gap-2 text-amber-400 font-extrabold text-[12px] uppercase tracking-wider">
-              <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500" />
-              <span>Cần cấu hình Authorized Domain</span>
-            </div>
-            
-            <div className="p-3 bg-indigo-950/50 border border-indigo-500/20 rounded-xl space-y-1">
-              <p className="text-[11px] text-indigo-350 font-bold flex items-center gap-1">
-                <span>💡 Hướng dẫn nhanh cho các em học sinh:</span>
-              </p>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
-                Để đăng ký tài khoản mới mà không gặp lỗi này, các em chỉ cần bấm <strong className="text-indigo-400">Đóng thông báo này</strong>, sau đó chọn tab <strong className="text-white">"Đăng ký Tài khoản"</strong> hoặc <strong className="text-white">"Đăng nhập trực tiếp"</strong> bên dưới để đăng ký trực tiếp bằng Tên và Mật khẩu tự chọn rất đơn giản!
-              </p>
-            </div>
-
-            <p className="text-slate-350 text-[11px] leading-relaxed">
-              <strong>Dành cho Quản trị viên (Thầy Hiệp):</strong> Tên miền Vercel này chưa được cấu hình ủy nhiệm trong cài đặt Firebase. Thầy hãy thực hiện theo các bước sau để cho phép đăng nhập bằng Google:
-            </p>
-            <div className="p-2 bg-slate-955 border border-slate-800 rounded-lg font-mono text-[11px] text-emerald-400 select-all flex justify-between items-center bg-black/45">
-              <span>{unauthorizedDomain}</span>
-              <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 rounded font-sans text-slate-400 font-bold">Copy</span>
-            </div>
-            <div className="text-[11px] text-slate-400 space-y-1 pl-1">
-              <div className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-black">1.</span>
-                <span>Truy cập trang cấu hình auth: <a href={`https://console.firebase.google.com/project/${import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseConfig.projectId || "splendid-topic-xmvz5"}/authentication/settings`} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline underline-offset-2 font-bold inline-flex items-center gap-0.5 font-sans">Firebase Console Settings →</a></span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-black">2.</span>
-                <span>Nhấp chọn mục <strong>Miền được ủy quyền</strong> (Authorized domains).</span>
-              </div>
-              <div className="flex items-start gap-1.5">
-                <span className="text-amber-500 font-black">3.</span>
-                <span>Nhấp <strong>Thêm miền</strong> (Add domain) và điền tên miền đã sao chép bên trên vào.</span>
-              </div>
-            </div>
-            <div className="border-t border-slate-800/80 my-2 pt-2.5 text-center">
-              <div className="flex items-center justify-between gap-2.5 mb-2.5">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">⚡ Chọn Đăng nhập nhanh để trải nghiệm ngay:</p>
-                <button 
-                  onClick={() => setUnauthorizedDomain(null)}
-                  className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer"
-                >
-                  Đóng/Bỏ qua lỗi
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onBypass('student', 'hocsinh@gmail.com', 'Học Học Sinh Thử Nghiệm')}
-                  className="py-2 px-2 bg-indigo-950 hover:bg-indigo-900 border border-indigo-500/20 text-indigo-300 rounded-lg text-[10px] font-black transition cursor-pointer"
-                >
-                  🎒 Giả lập Học Sinh
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onBypass('teacher', 'teacher.wonder@gmail.com', 'Cô Trần Phương Linh')}
-                  className="py-2 px-2 bg-blue-950 hover:bg-blue-900 border border-blue-500/20 text-blue-300 rounded-lg text-[10px] font-black transition cursor-pointer"
-                >
-                  🏫 Giả lập Giáo Viên
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-4 relative z-10">
+        {/* RIGHT COLUMN: MAIN CREDENTIAL MANAGEMENT AREA */}
+        <div className="space-y-6 relative z-10 w-full flex flex-col justify-between h-full">
           
-          {/* STATE 1: Not logged in */}
-          {!googleUser && !directUser && (
-            <div className="space-y-4">
-              
-              {/* Premium Auth Tabs Selection */}
-              <div className="flex bg-slate-900/60 p-1 border border-slate-800 rounded-2xl gap-1">
-                <button
-                  type="button"
-                  onClick={() => { setAuthTab('google'); setError(null); }}
-                  className={`flex-1 py-2 text-[11px] font-black rounded-xl transition-all cursor-pointer text-center ${
-                    authTab === 'google'
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  🚀 Google Đăng nhập
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAuthTab('direct_login'); setError(null); }}
-                  className={`flex-1 py-2 text-[11px] font-black rounded-xl transition-all cursor-pointer text-center ${
-                    authTab === 'direct_login' || authTab === 'forgot_password'
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  🔑 Đăng nhập trực tiếp
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAuthTab('direct_register'); setError(null); }}
-                  className={`flex-1 py-2 text-[11px] font-black rounded-xl transition-all cursor-pointer text-center ${
-                    authTab === 'direct_register'
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  📝 Đăng ký Tài khoản
-                </button>
+          {/* Glow Effects */}
+          <div className="absolute top-0 left-1/4 w-32 h-32 bg-blue-600/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-32 h-32 bg-indigo-600/10 rounded-full blur-3xl"></div>
+
+          <div className="text-center relative z-10">
+            <div className="flex justify-center items-center gap-2 select-none mb-4">
+              <span className="text-3xl font-black text-blue-500 tracking-tighter leading-none">Δ</span>
+              <span className="text-3xl font-black text-amber-500 tracking-tighter -ml-3 leading-none">W</span>
+              <span className="text-slate-300 ml-1 text-xs uppercase tracking-widest font-mono border-l border-slate-700 pl-3">Portal</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">Hệ thống Đăng Ký Trực Tuyến</h2>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+              Học tập chất lượng cao, giám sát thông minh, đồng bộ dữ liệu tới Google Sheets hệ sinh thái MathWonder.
+            </p>
+          </div>
+
+          {error && (
+            <div className="p-3.5 bg-red-950/40 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-center gap-2.5 relative z-10">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {unauthorizedDomain && (
+            <div className="p-4 bg-slate-900/90 border border-amber-500/35 rounded-2xl text-xs space-y-3 relative z-10 animate-fadeIn text-left">
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-[12px] uppercase tracking-wider">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>Cần cấu hình Authorized Domain</span>
               </div>
+              
+              <div className="p-3 bg-indigo-950/50 border border-indigo-500/20 rounded-xl space-y-1">
+                <p className="text-[11px] text-indigo-350 font-bold flex items-center gap-1">
+                  <span>💡 Hướng dẫn nhanh cho các em học sinh:</span>
+                </p>
+                <p className="text-slate-300 text-[11px] leading-relaxed">
+                  Để đăng ký tài khoản mới mà không gặp lỗi này, các em chỉ cần bấm <strong className="text-indigo-400">Đóng thông báo này</strong>, sau đó chọn tab <strong className="text-white">"Đăng ký Tài khoản"</strong> hoặc <strong className="text-white">"Đăng nhập trực tiếp"</strong> bên dưới để đăng ký trực tiếp bằng Tên và Mật khẩu tự chọn rất đơn giản!
+                </p>
+              </div>
+
+              <p className="text-slate-350 text-[11px] leading-relaxed">
+                <strong>Dành cho Quản trị viên (Thầy Hiệp):</strong> Tên miền Vercel này chưa được cấu hình ủy nhiệm trong cài đặt Firebase. Thầy hãy thực hiện theo các bước sau để cho phép đăng nhập bằng Google:
+              </p>
+              <div className="p-2 bg-slate-955 border border-slate-800 rounded-lg font-mono text-[11px] text-emerald-400 select-all flex justify-between items-center bg-black/45">
+                <span>{unauthorizedDomain}</span>
+                <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 rounded font-sans text-slate-400 font-bold">Copy</span>
+              </div>
+              <div className="text-[11px] text-slate-400 space-y-1 pl-1">
+                <div className="flex items-start gap-1.5">
+                  <span className="text-amber-500 font-black">1.</span>
+                  <span>Truy cập trang cấu hình auth: <a href="https://console.firebase.google.com/project/splendid-topic-xmvz5/authentication/settings" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline underline-offset-2 font-bold inline-flex items-center gap-0.5 font-sans">Firebase Console Settings →</a></span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-amber-500 font-black">2.</span>
+                  <span>Nhấp chọn mục <strong>Miền được ủy quyền</strong> (Authorized domains).</span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-amber-500 font-black">3.</span>
+                  <span>Nhấp <strong>Thêm miền</strong> (Add domain) và điền tên miền đã sao chép bên trên vào.</span>
+                </div>
+              </div>
+              <div className="border-t border-slate-800/80 my-2 pt-2.5 text-center">
+                <div className="flex items-center justify-between gap-2.5 mb-2.5">
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">⚡ Chọn Đăng nhập nhanh để trải nghiệm ngay:</p>
+                  <button 
+                    onClick={() => setUnauthorizedDomain(null)}
+                    className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer"
+                  >
+                    Đóng/Bỏ qua lỗi
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onBypass('student', 'hocsinh@gmail.com', 'Học Học Sinh Thử Nghiệm')}
+                    className="py-2 px-2 bg-indigo-950 hover:bg-indigo-900 border border-indigo-500/20 text-indigo-300 rounded-lg text-[10px] font-black transition cursor-pointer"
+                  >
+                    🎒 Giả lập Học Sinh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onBypass('teacher', 'teacher.wonder@gmail.com', 'Cô Trần Phương Linh')}
+                    className="py-2 px-2 bg-blue-950 hover:bg-blue-900 border border-blue-500/20 text-blue-300 rounded-lg text-[10px] font-black transition cursor-pointer"
+                  >
+                    🏫 Giả lập Giáo Viên
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4 relative z-10 flex-1 flex flex-col justify-center">
+            
+            {/* STATE 1: Not logged in */}
+            {!googleUser && !directUser && (
+              <div className="space-y-4">
+                
+                {/* Premium Auth Tabs Selection */}
+                <div className="flex bg-slate-900/60 p-1 border border-slate-800 rounded-2xl gap-1 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('google'); setError(null); }}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer text-center ${
+                      authTab === 'google'
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    🚀 Google Auth
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('direct_login'); setError(null); }}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer text-center ${
+                      authTab === 'direct_login'
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    🔐 Đăng nhập
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('direct_register'); setError(null); }}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer text-center ${
+                      authTab === 'direct_register'
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-950/40"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    📝 Đăng ký
+                  </button>
+                </div>
 
               {authTab === 'google' && (
                 <div className="space-y-4 animate-fadeIn">
@@ -558,8 +866,7 @@ export default function AisAuthGate({
                     </div>
                   </div>
                   
-                  <div className="flex justify-between items-center px-1">
-                    <span className="text-[9px] text-slate-500">Mật khẩu ban đầu của Admin là Hieptran275@</span>
+                  <div className="flex justify-end items-center px-1">
                     <button
                       type="button"
                       onClick={() => { setAuthTab('forgot_password'); setError(null); }}
@@ -1116,5 +1423,6 @@ export default function AisAuthGate({
 
       </div>
     </div>
+  </div>
   );
 }

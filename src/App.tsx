@@ -357,6 +357,39 @@ export default function App() {
     }
   }, [currentUserSession]);
 
+  // Auto-register any logged in user who is not already in registrations list so they show up in admin list
+  useEffect(() => {
+    if (currentUserSession && currentUserSession.role !== 'admin') {
+      const emailLower = currentUserSession.email.trim().toLowerCase();
+      if (registrations.length > 0) {
+        const index = registrations.findIndex(r => r.email.toLowerCase() === emailLower);
+        if (index === -1) {
+          const newRegId = `reg-${Date.now()}`;
+          const newReg: Registration = {
+            id: newRegId,
+            name: currentUserSession.name,
+            email: emailLower,
+            role: currentUserSession.role as 'student' | 'teacher',
+            phone: currentUserSession.email.includes("hocsinh") ? "0912345678" : "0901234567",
+            school: currentUserSession.role === "teacher" ? "Hệ sinh thái MathWonder (Giáo viên)" : "Trường THPT Chuyên (Học sinh)",
+            status: "approved",
+            createdAt: new Date().toISOString()
+          };
+          
+          setRegistrations((prev) => {
+            if (prev.some(r => r.email.toLowerCase() === emailLower)) return prev;
+            const updated = [...prev, newReg];
+            localStorage.setItem("mw_registrations", JSON.stringify(updated));
+            return updated;
+          });
+
+          setDoc(doc(db, "registrations", newRegId), cleanUndefined(newReg))
+            .catch(err => console.error("Auto registration persistence error:", err));
+        }
+      }
+    }
+  }, [currentUserSession, registrations]);
+
   // Firebase Auth state and Firestore synchronization
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "registrations"), (snapshot) => {
